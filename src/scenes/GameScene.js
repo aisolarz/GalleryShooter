@@ -63,6 +63,7 @@ class GameScene extends Phaser.Scene {
         this.score = 0;
         this.health = 3;
         this.bossSpawned = false;
+        this.waveStarted = false;
 
 
         // hit animation
@@ -199,6 +200,30 @@ class GameScene extends Phaser.Scene {
         this.enemies.push(enemy);
     }
 
+    spawnWaveEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.add.sprite(
+                850 + (i * 100),
+                150 + (i * 70),
+                "police"
+            );
+
+            enemy.setFlipX(true);
+            enemy.setScale(2.0);
+
+            enemy.health = 2;
+            enemy.speed = 200;
+            enemy.canShoot = true;
+            enemy.points = 75;
+
+            // NEW: path movement values
+            enemy.waveEnemy = true;
+            enemy.startY = enemy.y;
+
+            this.enemies.push(enemy);
+        }
+    }
+
     //HOTDOG BOSS
     spawnBoss(){
         this.enemySpawnTimer.remove();
@@ -284,6 +309,10 @@ class GameScene extends Phaser.Scene {
             }
 
             enemy.x -= enemy.speed * dt;
+            //wave path movement
+            if (enemy.waveEnemy) {
+                enemy.y = enemy.startY + Math.sin(time / 300 + enemy.x * 0.02) * 80;
+            }
 
             if (enemy.canShoot && Math.random() < 0.01) {
                 let laser = this.add.sprite(
@@ -422,8 +451,23 @@ class GameScene extends Phaser.Scene {
         my.text.score.setText("Score: " + this.score);
         my.text.health.setText("Hearts: " + this.health);
 
-        //boss spawns
-        if (this.score >= 300 && !this.bossSpawned) {
+        // special wave before boss
+        if (this.score >= 200 && !this.waveStarted) {
+            this.waveStarted = true;
+
+            // stop normal enemies briefly
+            this.enemySpawnTimer.remove();
+
+            this.spawnWaveEnemies();
+        }
+
+        // boss after wave is beaten
+        if (
+            this.score >= 300 &&
+            !this.bossSpawned &&
+            this.enemies.length === 0 &&
+            this.waveStarted
+        ) {
             this.spawnBoss();
         }
 
